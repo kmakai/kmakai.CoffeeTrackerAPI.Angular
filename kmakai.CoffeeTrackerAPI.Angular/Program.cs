@@ -40,9 +40,22 @@ app.MapGet("/coffees", async (TrackerContext db) =>
 
 app.MapPost("/coffees", async (TrackerContext db, Coffee coffee) =>
 {
-    await db.Coffees.AddAsync(coffee);
-    await db.SaveChangesAsync();
-    return Results.Created($"/coffees/{coffee.Id}", coffee);
+    var coffees = await db.Coffees.ToListAsync();
+
+    if (coffees.Any(c => c.Date.Date == coffee.Date.Date))
+    {
+        var existingCoffee = coffees.First(c => c.Date.Date == coffee.Date.Date);
+        existingCoffee.Cups += coffee.Cups;
+        await db.SaveChangesAsync();
+        return Results.Created($"/coffees/{existingCoffee.Id}", existingCoffee);
+    }
+    else
+    {
+        await db.Coffees.AddAsync(coffee);
+        await db.SaveChangesAsync();
+        return Results.Created($"/coffees/{coffee.Id}", coffee);
+    }
+
 });
 
 app.MapGet("/coffees/{id}", async (int id, TrackerContext db) =>
